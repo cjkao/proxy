@@ -34,7 +34,8 @@ Handler proxyHandler(url, {http.Client client, String proxyName}) {
     clientRequest.followRedirects = false;
     clientRequest.headers.addAll(serverRequest.headers);
     clientRequest.headers['Host'] = url.authority;
-
+    clientRequest.headers['xx'] = 'zz';
+    clientRequest.headers['cookie']="${clientRequest.headers['cookie']} ; a=b";
     // Add a Via header. See
     // http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.45
     _addHeader(clientRequest.headers, 'via', '${serverRequest.protocolVersion} $proxyName');
@@ -44,7 +45,8 @@ Handler proxyHandler(url, {http.Client client, String proxyName}) {
       // Add a Via header. See
       // http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.45
       _addHeader(clientResponse.headers, 'via', '1.1 $proxyName');
-      addCorsHeader(clientResponse.headers, 'via', '1.1 $proxyName');
+      print(serverRequest.headers['referer']);
+      addCorsHeader(clientResponse.headers, serverRequest.headers['referer']);
 
       // Remove the transfer-encoding since the body has already been decoded by
       // [client].
@@ -80,8 +82,10 @@ Handler proxyHandler(url, {http.Client client, String proxyName}) {
 // TODO(nweiz): use built-in methods for this when http and shelf support them.
 /// Add a header with [name] and [value] to [headers], handling existing headers
 /// gracefully.
-void addCorsHeader(Map<String, String> headers, String name, String value) {
-  headers['Access-Control-Allow-Origin'] = '*';
+void addCorsHeader(Map<String, String> headers, String referer) {
+  var uri= Uri.parse(referer);
+
+  headers['Access-Control-Allow-Origin'] = 'http://${uri.host}:${uri.port}';
   headers['Access-Control-Allow-Methods'] = "POST, GET, OPTIONS";
   headers['Access-Control-Allow-Headers'] = "X-PINGOTHER";
   headers['Access-Control-Max-Age'] ='1728000';
